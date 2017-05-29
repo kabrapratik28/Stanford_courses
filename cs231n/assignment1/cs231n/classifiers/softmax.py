@@ -29,11 +29,29 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  f = X.dot(W)                                 # N x C dimensional
+  maximum = np.array([np.amax(f, axis=1)]).T
+  f = f - maximum
+  exp_f = np.exp(f)
+  sum_f = np.sum(exp_f,axis=1)                 # N x 1 dimensional
+  expected = exp_f[np.arange(num_train),y]     # N x 1 dimensional
+  y_cal = expected / sum_f               
+  loss = -np.log(y_cal)
+  loss = np.sum(loss) / float(num_train)
+  
+  for each_train in range(num_train):
+    X_instance = np.array([X[each_train]]).T
+    class_predications = exp_f[each_train] / sum_f[each_train] # 1 x C dimensional
+    dW = dW + np.dot(X_instance, np.array([class_predications]))
+    dW[:,y[each_train]] = dW[:,y[each_train]] - X[each_train]
+  
+  loss = loss + 0.5 * reg * np.sum(W * W)
+  dW = dW / float(num_train)
+  dW = dW + reg * W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
-
   return loss, dW
 
 
@@ -53,7 +71,26 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  f = X.dot(W)                                 # N x C dimensional
+  maximum = np.array([np.amax(f, axis=1)]).T
+  f = f - maximum
+  exp_f = np.exp(f)
+  sum_f = np.sum(exp_f,axis=1)                 # N x 1 dimensional
+  expected = exp_f[np.arange(num_train),y]     # N x 1 dimensional
+  y_cal = expected / sum_f               
+  loss = -np.log(y_cal)
+  loss = np.sum(loss) / float(num_train)
+  
+  class_predications = exp_f/np.array([sum_f]).T
+  dW = X.T.dot(class_predications)
+  subtract_part = np.zeros(f.shape)                 # N x C dimensional
+  subtract_part[np.arange(num_train),y] = 1
+  dW = dW - X.T.dot(subtract_part)
+  
+  loss = loss + 0.5 * reg * np.sum(W * W)
+  dW = dW / float(num_train)
+  dW = dW + reg * W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
