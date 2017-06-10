@@ -125,24 +125,14 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    """
-    class_predications = exp_scores/np.array([sum_scores]).T  # N x C
-    dW2 = hidden_layer_temp.T.dot(class_predications) # (H+1) x C
-    subtract_part = np.zeros(scores.shape)  # N x C
-    subtract_part[np.arange(N),y] = 1
-    dW2 = dW2 - hidden_layer_temp.T.dot(subtract_part)   
-    dW2 = dW2 / float(N)
     
-    grads['b2'] = dW2[-1]
-    grads['W2'] = dW2[:-1] + reg * W2
-    """
     class_predications = exp_scores / np.array([sum_scores]).T # N x C
     actual = np.zeros(class_predications.shape)                # N x C
     actual[np.arange(N),y] = 1
            
-    error = class_predications - actual                      # N x C
+    error = (class_predications - actual)/float(N)             # N x C
+    
     dW2 = hidden_layer_temp.T.dot(error)                     # (H+1) x C
-    dW2 = dW2 / float(N)
 
     grads['b2'] = dW2[-1]
     grads['W2'] = dW2[:-1] + reg * W2
@@ -151,11 +141,9 @@ class TwoLayerNet(object):
     dReLU[hidden_layer>0] = 1                          # N x H
     dReLU = dReLU * error.dot(W2.T)                    # N x H
     dW1 = X_temp.T.dot(dReLU)                          # (D+1) x H
-    dW1 = dW1 / float(N)
     
     grads['b1'] = dW1[-1]
     grads['W1'] = dW1[:-1] + reg * W1
-    
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
