@@ -180,7 +180,15 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
-        pass
+        x_mean = np.mean(x,axis=0)
+        x_var = np.var(x,axis=0) + eps
+        x_var_sqrt = np.sqrt(x_var)
+        x_normalize = (x - x_mean)/x_var_sqrt 
+        out = gamma * x_normalize + beta
+        
+        running_mean = momentum * running_mean + (1.0 - momentum) * x_mean
+        running_var = momentum * running_var + (1.0 - momentum) * x_var
+        cache = (x,gamma,eps)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -191,7 +199,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+        x_normalize = (x - running_mean) / np.sqrt(running_var) 
+        out = gamma * x_normalize + beta
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -227,7 +236,28 @@ def batchnorm_backward(dout, cache):
     # TODO: Implement the backward pass for batch normalization. Store the    #
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
-    pass
+    x,gamma,eps = cache
+    x_mean = np.mean(x,axis=0)
+    x_var = np.var(x,axis=0) + eps
+    x_var_sqrt = np.sqrt(x_var)
+    x_normalize = (x - x_mean)/x_var_sqrt 
+
+    N, D = x.shape
+    error_feature_wise = np.sum(dout,axis=0)     # 1 x D
+    dbeta = error_feature_wise                   # 1 x D
+    dgamma = np.sum(x_normalize * dout, axis=0)  # 1 x D
+    dx = np.zeros_like(x)
+    
+    # normalization gradients
+    dnormalization = gamma * dout                # N x D
+    dx_u = 1.0/x_var_sqrt * dnormalization
+    dmul = (x - x_mean) * dnormalization
+    d_1_by_x = -1 / x_var * dmul
+    d_root_x = 1/2.0 * (x_var ** -0.5) * d_1_by_x
+    d_sum_x = 1.0/N * np.sum(d_root_x,axis=0)
+    d_x_square = 2 * (x - x_mean) * d_sum_x
+    dx_u += d_x_square
+    dx = dx_u + (-1.0/N) * np.sum(dx_u,axis=0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -257,7 +287,24 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    pass
+    x,gamma,eps = cache
+    x_mean = np.mean(x,axis=0)
+    x_var = np.var(x,axis=0) + eps
+    x_var_sqrt = np.sqrt(x_var)
+    x_normalize = (x - x_mean)/x_var_sqrt 
+
+    N, D = x.shape
+    error_feature_wise = np.sum(dout,axis=0)     # 1 x D
+    dbeta = error_feature_wise                   # 1 x D
+    dgamma = np.sum(x_normalize * dout, axis=0)  # 1 x D
+    dx = np.zeros_like(x)
+    
+    # normalization gradients
+    dnormalization = gamma * dout                # N x D  
+    dmean = -1/2.0 * (x - x_mean) * (x_var_sqrt)**(-3) * dnormalization # merge till sum
+    dx_u = 2.0/N * (x - x_mean) * np.sum(dmean,axis=0)  # merge from sum till (x-u)
+    dx_u += 1.0/x_var_sqrt * dnormalization
+    dx = dx_u + (-1.0/N) * np.sum(dx_u,axis=0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
