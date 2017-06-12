@@ -136,7 +136,7 @@ class TwoLayerNet(object):
 ############################################################################
 #                             AFFINE-BATCH NORM-RELU                       #
 ############################################################################
-def affine_batch_relu_forward(x, w, b, gamma, beta, bn_param):
+def affine_batch_relu_dropout_forward(x, w, b, gamma, beta, bn_param, use_dropout, dropout_param):
     """
     Convenience layer that perorms an affine transform followed by a ReLU
 
@@ -151,15 +151,20 @@ def affine_batch_relu_forward(x, w, b, gamma, beta, bn_param):
     a, fc_cache = affine_forward(x, w, b)
     batch_out, batch_cache = batchnorm_forward(a, gamma, beta, bn_param)
     out, relu_cache = relu_forward(batch_out)
-    cache = (fc_cache, batch_cache, relu_cache)
+    dropout_cache = None
+    if use_dropout:
+        out, dropout_cache = dropout_forward(out,dropout_param)
+    cache = (fc_cache, batch_cache, relu_cache, use_dropout, dropout_cache)
     return out, cache
 
 
-def affine_batch_relu_backward(dout, cache):
+def affine_batch_relu_dropout_backward(dout, cache):
     """
     Backward pass for the affine-relu convenience layer
     """
-    fc_cache, batch_cache, relu_cache = cache
+    fc_cache, batch_cache, relu_cache, use_dropout, dropout_cache = cache
+    if use_dropout:
+        dout = dropout_backward(dout, dropout_cache)
     da = relu_backward(dout, relu_cache)
     dbatch, dgamma, dbeta = batchnorm_backward(da, batch_cache)
     dx, dw, db = affine_backward(dbatch, fc_cache)
@@ -304,13 +309,17 @@ class FullyConnectedNet(object):
             for i in range(self.num_layers-1):
                 w,b = self.params['W'+str(i+1)],self.params['b'+str(i+1)]
                 gamma, beta = self.params['gamma'+str(i+1)],self.params['beta'+str(i+1)]
-                out, cache = affine_batch_relu_forward(x, w, b, gamma, beta, self.bn_params[i])
+                out, cache = affine_batch_relu_dropout_forward(x, w, b, gamma, beta, self.bn_params[i],
+                                                               self.use_dropout,self.dropout_param)
                 caches['cache'+str(i+1)] = cache
                 x = out
         else:
             for i in range(self.num_layers-1):
                 w,b = self.params['W'+str(i+1)],self.params['b'+str(i+1)]
                 out, cache = affine_relu_forward(x,w,b)
+                if self.use_dropout:
+                    out, dropout_cache = dropout_forward(out, self.dropout_param)
+                    caches['dropout'+str(i+1)] = dropout_cache
                 caches['cache'+str(i+1)] = cache
                 x = out
         
@@ -353,7 +362,7 @@ class FullyConnectedNet(object):
         if self.use_batchnorm:
             for i in range(i-1,-1,-1):
                 cache = caches['cache'+str(i+1)]
-                dx, dw, db, dgamma, dbeta = affine_batch_relu_backward(dx,cache)
+                dx, dw, db, dgamma, dbeta = affine_batch_relu_dropout_backward(dx,cache)
                 grads['W'+str(i+1)] = dw
                 grads['b'+str(i+1)] = db
                 grads['gamma'+str(i+1)] = dgamma
@@ -361,6 +370,9 @@ class FullyConnectedNet(object):
         else:
             for i in range(i-1,-1,-1):
                 cache = caches['cache'+str(i+1)]
+                if self.use_dropout:
+                    dropout_cache = caches['dropout'+str(i+1)]
+                    dx = dropout_backward(dx, dropout_cache)
                 dx, dw, db = affine_relu_backward(dx,cache)
                 grads['W'+str(i+1)] = dw
                 grads['b'+str(i+1)] = db
