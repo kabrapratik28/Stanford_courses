@@ -524,7 +524,24 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    N, C, H, W = x.shape
+    
+    H_r = int(1 + (H - pool_height) / stride)
+    W_r = int(1 + (W - pool_width) / stride)
+    out = np.zeros((N,C,H_r,W_r))
+    
+    for h in range(H_r):
+        for wd in range(W_r):
+            lh = h * stride # left side height
+            lr = lh + pool_height # rigth side height
+            lw = wd * stride # left side width
+            rw = lw + pool_width # rigth side width
+            
+            data = x[:,:,lh:lr,lw:rw] # N x C x pool_height x pool_width
+            out[:,:,h,wd] = np.max(data,axis=(2,3)) # N x C x 1
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -547,7 +564,26 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    x, pool_param = cache
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    dx = np.zeros_like(x)
+    N, C, H_r, W_r = dout.shape
+    
+    for h in range(H_r):
+        for wd in range(W_r):
+            lh = h * stride # left side height
+            lr = lh + pool_height # rigth side height
+            lw = wd * stride # left side width
+            rw = lw + pool_width # rigth side width
+            
+            data = x[:,:,lh:lr,lw:rw] # N x C x pool_height x pool_width
+            max_data = np.max(data,axis=(2,3)).reshape((N,C,1,1))
+            # bug : if two cells have max value ... (ideally : only one should be kept)
+            mask = data >= max_data
+            delta = dout[:,:,h,wd].reshape((N,C,1,1))
+            dx[:,:,lh:lr,lw:rw] = delta * mask
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
