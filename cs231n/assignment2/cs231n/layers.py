@@ -466,7 +466,39 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x, w, b, conv_param = cache
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    N, F, H_r, W_r = dout.shape
+    
+    #init
+    dx = np.zeros_like(x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    
+    # No padding to N and C, pad H and W (N,C,H,W)
+    padding_tuple = ((0,0),(0,0),(pad,pad),(pad,pad))
+    x_padded = np.pad(x,padding_tuple,'constant')
+    dx_padded = np.zeros_like(x_padded)
+    for h in range(H_r):
+        for wd in range(W_r):
+            lh = h * stride # left side height
+            lr = lh + HH # rigth side height
+            lw = wd * stride # left side width
+            rw = lw + WW # rigth side width
+            
+            data = x_padded[:,:,lh:lr,lw:rw] # N x C x HH x WW
+            for f in range(F):
+                # delta at particular position
+                delta = dout[:,f,h,wd].reshape((N,1,1,1)) # N x 1 x 1 x 1
+                dw[f] += np.sum(delta * data, axis=0)  # C x HH x WW
+                db[f] += np.sum(dout[:,f,h,wd]) # 1
+                dx_padded[:,:,lh:lr,lw:rw] += w[f] * delta # N x C x HH x WW
+    
+    #unpad
+    dx = dx_padded[:,:,pad:H+pad,pad:W+pad]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
