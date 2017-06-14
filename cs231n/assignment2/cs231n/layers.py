@@ -621,7 +621,12 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    N, C, H, W = x.shape
+    x_transpose = np.transpose(x,(0,2,3,1))
+    x_2d = x_transpose.reshape((N * H * W,-1))
+    out_2d, cache = batchnorm_forward(x_2d,gamma,beta,bn_param)
+    out_transpose = out_2d.reshape((N,H,W,-1))
+    out = np.transpose(out_transpose,(0,3,1,2))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -651,7 +656,12 @@ def spatial_batchnorm_backward(dout, cache):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    N, C, H, W = dout.shape
+    dout_transpose = np.transpose(dout,(0,2,3,1))
+    dout_2d = dout_transpose.reshape((N * H * W,-1))
+    dx_2d, dgamma, dbeta = batchnorm_backward(dout_2d,cache)
+    dx_transpose = dx_2d.reshape((N,H,W,-1))
+    dx = np.transpose(dx_transpose,(0,3,1,2))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
