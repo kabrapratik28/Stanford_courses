@@ -108,7 +108,18 @@ def rnn_forward(x, h0, Wx, Wh, b):
     # input data. You should use the rnn_step_forward function that you defined  #
     # above. You can use a for loop to help compute the forward pass.            #
     ##############################################################################
-    pass
+    N, T, D = x.shape
+    N, H = h0.shape
+    h = np.zeros((N, T, H))
+    cache = {}
+    prev_h = h0
+    # for each time step
+    for i in range(T):
+        data_at_timestep_i = x[:,i,:]   # N x D
+        next_h, cache_i = rnn_step_forward(data_at_timestep_i, prev_h, Wx, Wh, b)
+        prev_h = next_h
+        cache[i] = cache_i
+        h[:,i,:] = next_h
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -135,7 +146,26 @@ def rnn_backward(dh, cache):
     # sequence of data. You should use the rnn_step_backward function that you   #
     # defined above. You can use a for loop to help compute the backward pass.   #
     ##############################################################################
-    pass
+    N, T, H = dh.shape
+    N, D = cache[0][1].shape # forward step x shape
+    dx = np.zeros((N, T, D))
+    dh0 = np.zeros((N, H))
+    dWx = np.zeros((D, H))
+    dWh = np.zeros((H, H))
+    db = np.zeros(H,)
+    
+    # for loop backwards ... T-1, T-2, ..., 0
+    dprev_h_i = np.zeros((N, H))
+    for i in range(T-1,-1,-1):
+        cache_i = cache[i]
+        dprev_h_i += dh[:,i,:]
+        dx_i, dprev_h_i, dWx_i, dWh_i, db_i = rnn_step_backward(dprev_h_i, cache_i)
+        dx[:,i,:] = dx_i
+        dWx += dWx_i
+        dWh += dWh_i
+        db += db_i
+        # only useful in last loop last
+        dh0 = dprev_h_i
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
