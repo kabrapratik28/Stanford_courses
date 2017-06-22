@@ -137,7 +137,40 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        pass
+        # (1) initial hidden state
+        h0, h0_cache = affine_forward(features,W_proj,b_proj)
+        # (2) caption_in (indices to vectors)
+        caption_in_vector, caption_in_vector_cache = word_embedding_forward(captions_in,W_embed)
+        # (3) RNN / LSTM to generate hidden state
+        h, h_cache = None, None
+        if self.cell_type == 'rnn':
+            h, h_cache = rnn_forward(caption_in_vector, h0, Wx, Wh, b)
+        else:
+            pass # LSTM
+        # (4) affine transformation
+        vocab_out, vocab_out_cache = temporal_affine_forward(h, W_vocab, b_vocab)
+        # (5) (temporal) softmax
+        loss, dx = temporal_softmax_loss(vocab_out, captions_out, mask)
+        
+        # Backward pass
+        dx, dw, db = temporal_affine_backward(dx, vocab_out_cache)
+        grads["W_vocab"] = dw
+        grads["b_vocab"] = db
+        
+        dx, dh0, dWx, dWh, db = dx, None, None, None, None
+        if self.cell_type == 'rnn':
+            dx, dh0, dWx, dWh, db = rnn_backward(dx,h_cache)
+        else:
+            pass #LSTM
+            
+        grads["Wx"] = dWx
+        grads["Wh"] = dWh
+        grads["b"] = db
+        
+        grads["W_embed"] = word_embedding_backward(dx,caption_in_vector_cache)
+        _, dw, db = affine_backward(dh0,h0_cache)
+        grads["W_proj"] = dw
+        grads["b_proj"] = db
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
