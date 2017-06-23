@@ -286,6 +286,7 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     i,f,o,g = sigmoid(i), sigmoid(f), sigmoid(o), np.tanh(g)
     next_c = f * prev_c + i * g
     next_h = o * np.tanh(next_c)
+    cache = (next_h, next_c, prev_c, i, f, o, g, prev_h, Wx, Wh,x)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -317,7 +318,32 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     # HINT: For sigmoid and tanh you can compute local derivatives in terms of  #
     # the output value from the nonlinearity.                                   #
     #############################################################################
-    pass
+    next_h, next_c, prev_c, i, f, o, g, prev_h, Wx, Wh, x = cache
+    tanh_next_c = np.tanh(next_c)
+    
+    do = dnext_h * tanh_next_c                  # N x H
+    dnext_c_from_h = dnext_h * o                # N x H
+    dnext_c_from_h = dnext_c_from_h * (1- tanh_next_c * tanh_next_c)
+    dnext_c += dnext_c_from_h                   # N x H
+    
+    dprev_c = dnext_c * f
+    df = dnext_c * prev_c
+    di = dnext_c * g
+    dg = dnext_c * i
+    
+    dg = dg * (1- g*g)
+    di = di * (i * (1-i))
+    df = df * (f * (1-f))
+    do = do * (o * (1-o))
+    
+    #concat
+    da = np.hstack((di,df,do,dg))               # N x 4H
+    
+    dx = da.dot(Wx.T)
+    dWx = da.T.dot(x).T
+    dprev_h = da.dot(Wh.T)
+    dWh = da.T.dot(prev_h).T
+    db = np.sum(da,axis=0)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
