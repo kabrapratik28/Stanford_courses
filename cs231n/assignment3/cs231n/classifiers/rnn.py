@@ -146,7 +146,7 @@ class CaptioningRNN(object):
         if self.cell_type == 'rnn':
             h, h_cache = rnn_forward(caption_in_vector, h0, Wx, Wh, b)
         else:
-            pass # LSTM
+            h, h_cache = lstm_forward(caption_in_vector, h0, Wx, Wh, b) # LSTM
         # (4) affine transformation
         vocab_out, vocab_out_cache = temporal_affine_forward(h, W_vocab, b_vocab)
         # (5) (temporal) softmax
@@ -161,7 +161,7 @@ class CaptioningRNN(object):
         if self.cell_type == 'rnn':
             dx, dh0, dWx, dWh, db = rnn_backward(dx,h_cache)
         else:
-            pass #LSTM
+            dx, dh0, dWx, dWh, db = lstm_backward(dx,h_cache) # LSTM
             
         grads["Wx"] = dWx
         grads["Wh"] = dWh
@@ -236,8 +236,12 @@ class CaptioningRNN(object):
         start_word = self._start * np.ones((N, 1), dtype=np.int32)
         x, _ = word_embedding_forward(start_word, W_embed)   # N x T x D , T=1
         x = x.reshape((N,-1))                       # N x D
+        prev_c = np.zeros_like(prev_h)# only for LSTM
         for i in range(max_length):
-            next_h, _ = rnn_step_forward(x, prev_h, Wx, Wh, b)
+            if self.cell_type == 'rnn':
+                next_h, _ = rnn_step_forward(x, prev_h, Wx, Wh, b)
+            else:
+                next_h, prev_c, _ = lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)
             words, _ = affine_forward(next_h, W_vocab, b_vocab)
             x = np.argmax(words, axis=1)                # Most probable words
             captions[:,i] = x
