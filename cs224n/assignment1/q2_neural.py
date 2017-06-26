@@ -26,7 +26,6 @@ def forward_backward_prop(data, labels, params, dimensions):
     ### Unpack network parameters (do not modify)
     ofs = 0
     Dx, H, Dy = (dimensions[0], dimensions[1], dimensions[2])
-
     W1 = np.reshape(params[ofs:ofs+ Dx * H], (Dx, H))
     ofs += Dx * H
     b1 = np.reshape(params[ofs:ofs + H], (1, H))
@@ -36,11 +35,23 @@ def forward_backward_prop(data, labels, params, dimensions):
     b2 = np.reshape(params[ofs:ofs + Dy], (1, Dy))
 
     ### YOUR CODE HERE: forward propagation
-    raise NotImplementedError
+    M = data.shape[0]
+    hidden_layer_in = data.dot(W1) + b1             # M x H
+    hidden_layer_out = sigmoid(hidden_layer_in)     # M x H
+    output_raw = hidden_layer_out.dot(W2) + b2      # M x Dy
+    output = softmax(output_raw)                    # M x Dy
     ### END YOUR CODE
 
     ### YOUR CODE HERE: backward propagation
-    raise NotImplementedError
+    cost = -1.0 * np.sum( labels * np.log(output) ) / float(M)  # scalar       
+    gradOut = output - labels                       # M x Dy
+    gradOut = gradOut / float(M)
+    gradW2 = hidden_layer_out.T.dot(gradOut)        # H x Dy
+    gradb2 = np.sum(gradOut,axis=0)                 # Dy
+    gradHiddenOut = gradOut.dot(W2.T)               # M x H
+    gradHiddenIn = sigmoid_grad(hidden_layer_out) * gradHiddenOut
+    gradW1 = data.T.dot(gradHiddenIn)               # Dx x H
+    gradb1 = np.sum(gradHiddenIn,axis=0)            # H
     ### END YOUR CODE
 
     ### Stack gradients (do not modify)
@@ -80,7 +91,18 @@ def your_sanity_checks():
     """
     print "Running your sanity checks..."
     ### YOUR CODE HERE
-    raise NotImplementedError
+    N = 15
+    dimensions = [20, 6, 4]
+    data = np.random.randn(N, dimensions[0])   # each row will be a datum
+    labels = np.zeros((N, dimensions[2]))
+    for i in xrange(N):
+        labels[i, random.randint(0,dimensions[2]-1)] = 1
+
+    params = np.random.randn((dimensions[0] + 1) * dimensions[1] + (
+        dimensions[1] + 1) * dimensions[2], )
+
+    gradcheck_naive(lambda params:
+        forward_backward_prop(data, labels, params, dimensions), params)
     ### END YOUR CODE
 
 
