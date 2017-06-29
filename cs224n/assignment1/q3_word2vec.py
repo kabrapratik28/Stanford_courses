@@ -15,7 +15,11 @@ def normalizeRows(x):
     """
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    squared_x = np.square(x)
+    sum_of_squared = np.sum(squared_x,axis=1)
+    x_length = np.sqrt(sum_of_squared).reshape((-1,1))
+    # unit length vector
+    x = x / x_length
     ### END YOUR CODE
 
     return x
