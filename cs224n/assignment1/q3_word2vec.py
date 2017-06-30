@@ -62,7 +62,20 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     """
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    x = predicted           # 1 x D  ~= (D,)
+    W = outputVectors       # V x D
+    V, D = outputVectors.shape
+    
+    out = softmax(x.dot(W.T)) # 1 x V   
+    
+    labels = np.zeros_like(out)
+    labels[target] = 1
+    cost = -1.0 * np.sum( labels * np.log(out) )
+    gradOut = out - labels                          # 1 x V
+    gradPred = gradOut.dot(W)                       # 1 x D
+    x_reshaped = x.reshape((1,-1))
+    out_reshaped = out.reshape((1,-1))
+    grad = out_reshaped.T.dot(x_reshaped)           # V x D
     ### END YOUR CODE
 
     return cost, gradPred, grad
