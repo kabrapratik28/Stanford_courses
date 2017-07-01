@@ -113,7 +113,35 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     indices.extend(getNegativeSamples(target, dataset, K))
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    x = predicted                   # 1 x D  ~= (D,)
+    W = outputVectors[indices]      # (K+1) x D
+    
+    out = sigmoid(x.dot(W.T))       # 1 x (K+1)
+    out_ones = np.ones_like(out)
+    # first one is target, make it zero
+    out_ones[0] = 0
+    # summation of sigmoid(-x) = 1 - sigmoid(x)
+    out = out_ones - out
+    # 0th element, target doesn't want negative
+    out[0] = -out[0]
+    
+    cost = -np.sum(np.log(out))
+    
+    dVc_second_part = (out - 1).reshape((-1,1)) * W  # (K+1) x D
+    # make first row zero, because its calculation are bit different 
+    # for target word
+    dVc_second_part[0,:] = 0
+    
+    gradPred = (out[0] - 1) * W[0] - np.sum(dVc_second_part,axis=0) 
+    
+    grad = np.zeros_like(outputVectors)
+    
+    duk = -(out - 1).reshape((-1,1)) * x
+    grad[indices] = duk
+    
+    # du0 # overwrite !
+    grad[target,:] = (out[0] - 1) * x
+    
     ### END YOUR CODE
 
     return cost, gradPred, grad
