@@ -74,8 +74,8 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     gradOut = out - labels                          # 1 x V
     gradPred = gradOut.dot(W)                       # 1 x D
     x_reshaped = x.reshape((1,-1))
-    out_reshaped = out.reshape((1,-1))
-    grad = out_reshaped.T.dot(x_reshaped)           # V x D
+    gradOut_reshaped = gradOut.reshape((1,-1))
+    grad = gradOut_reshaped.T.dot(x_reshaped)           # V x D
     ### END YOUR CODE
 
     return cost, gradPred, grad
@@ -137,7 +137,13 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     grad = np.zeros_like(outputVectors)
     
     duk = -(out - 1).reshape((-1,1)) * x
-    grad[indices] = duk
+    for index, each_indices in enumerate(indices):
+        grad[each_indices] += duk[index]
+        
+    # Cannot replace above by below line,
+    # because indices migth repeate ... 
+    # in below case they are over writting.
+    # grad[indices] = duk
     
     # du0 # overwrite !
     grad[target,:] = (out[0] - 1) * x
@@ -176,7 +182,14 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    currentWordIndex = tokens[currentWord]
+    predicted = inputVectors[currentWordIndex]
+    for i in contextWords:
+        target = tokens[i]
+        curr_cost, gradPred, grad = word2vecCostAndGradient(predicted, target, outputVectors, dataset)
+        cost += curr_cost
+        gradIn[currentWordIndex] += gradPred
+        gradOut += grad
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
