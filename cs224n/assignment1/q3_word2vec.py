@@ -213,7 +213,24 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    currentWordIndex = tokens[currentWord]
+    
+    res_input_vector = np.zeros(inputVectors[0].shape)
+    for i in contextWords:
+        index = tokens[i]
+        res_input_vector += inputVectors[index]
+    
+    # res_input_vector = surrounding words resultant
+    # currentWordIndex = center word index
+    curr_cost, gradPred, grad = word2vecCostAndGradient(res_input_vector, currentWordIndex, outputVectors, dataset)
+    cost += curr_cost
+    
+    # sum gate acts as distributor while gradients flow 
+    for i in contextWords:
+        index = tokens[i]
+        gradIn[index] += gradPred    
+        
+    gradOut += grad
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
