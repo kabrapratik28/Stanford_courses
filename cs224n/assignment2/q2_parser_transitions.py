@@ -21,6 +21,10 @@ class PartialParse(object):
         self.sentence = sentence
 
         ### YOUR CODE HERE
+        # top of stack as last element
+        self.stack = ["ROOT",]
+        self.buffer = sentence[:]
+        self.dependencies = []
         ### END YOUR CODE
 
     def parse_step(self, transition):
@@ -31,6 +35,20 @@ class PartialParse(object):
                         and right-arc transitions.
         """
         ### YOUR CODE HERE
+        if transition == "S":
+            word = self.buffer[0]
+            self.stack.append(word)
+            self.buffer = self.buffer[1:]
+        elif transition == "LA":
+            word_parent = self.stack.pop()
+            word_child = self.stack.pop()
+            self.dependencies.append((word_parent,word_child))
+            self.stack.append(word_parent)
+        elif transition == "RA":
+            word_child = self.stack.pop()
+            word_parent = self.stack.pop()
+            self.dependencies.append((word_parent,word_child))
+            self.stack.append(word_parent)
         ### END YOUR CODE
 
     def parse(self, transitions):
@@ -65,6 +83,41 @@ def minibatch_parse(sentences, model, batch_size):
     """
 
     ### YOUR CODE HERE
+    # For making batches, taken from 
+    # https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+    # modified to obtain indexes
+    def chunks(l, n):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(l), n):
+            yield (range(i,i+n), l[i:i + n])
+    
+    listPartialParse = []
+    for sentence in sentences:
+        listPartialParse.append(PartialParse(sentence))
+    
+    # shallow copy
+    unfinished_parses = listPartialParse[:]
+        
+    while len(unfinished_parses)!=0:
+        # generate batches
+        generator = chunks(unfinished_parses,batch_size)    
+        
+        for indexes, each_batch in generator:
+            transitions = model.predict(each_batch)
+            # perform parse step accordingly for each one of them
+            for index, transition, partial_parse in zip(indexes, transitions, each_batch):
+                partial_parse.parse_step(transition)
+                # check if parse is complete
+                if len(partial_parse.stack)<=1 and len(partial_parse.buffer)==0:
+                    #mark as complete
+                    unfinished_parses[index] = None
+        
+        # filter out None i.e. complete parses
+        unfinished_parses = [x for x in unfinished_parses if x is not None]
+    
+    dependencies = []
+    for partial_parse in listPartialParse:
+        dependencies.append(partial_parse.dependencies)
     ### END YOUR CODE
 
     return dependencies
