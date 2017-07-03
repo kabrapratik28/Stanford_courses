@@ -108,7 +108,7 @@ class ParserModel(Model):
             embeddings: tf.Tensor of shape (None, n_features*embed_size)
         """
         ### YOUR CODE HERE
-        embeddings = tf.constant(self.pretrained_embeddings)
+        embeddings = tf.Variable(self.pretrained_embeddings)
         embedding_features = tf.nn.embedding_lookup(embeddings,self.input_placeholder)
         embeddings = tf.reshape(embedding_features,shape=(-1,self.config.n_features * self.config.embed_size))
         ### END YOUR CODE
