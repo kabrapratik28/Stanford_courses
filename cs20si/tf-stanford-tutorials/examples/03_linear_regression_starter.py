@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import xlrd
 
-DATA_FILE = 'data/fire_theft.xls'
+DATA_FILE = '../data/fire_theft.xls'
 
 # Phase 1: Assemble the graph
 # Step 1: read in data from the .xls file
@@ -19,18 +19,22 @@ data = np.asarray([sheet.row_values(i) for i in range(1, sheet.nrows)])
 n_samples = sheet.nrows - 1
 
 # Step 2: create placeholders for input X (number of fire) and label Y (number of theft)
-
+number_of_features = 1 # fire
+X = tf.placeholder(dtype=tf.float32, shape=(None))
+Y = tf.placeholder(dtype=tf.float32, shape=(None))
 
 # Step 3: create weight and bias, initialized to 0
 # name your variables w and b
-
+w = tf.Variable(initial_value=0.0,dtype=tf.float32)
+b = tf.Variable(initial_value=0.0,dtype=tf.float32)
 
 # Step 4: predict Y (number of theft) from the number of fire
 # name your variable Y_predicted
-
+Y_predicted = X * w + b
 
 # Step 5: use the square error as the loss function
 # name your variable loss
+loss = tf.nn.l2_loss(Y-Y_predicted)
 
 # Step 6: using gradient descent with learning rate of 0.01 to minimize loss
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
@@ -38,20 +42,24 @@ optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss
 # Phase 2: Train our model
 with tf.Session() as sess:
 	# Step 7: initialize the necessary variables, in this case, w and b
-	# TO - DO	
+    init = tf.global_variables_initializer()
+    sess.run(init)
 
-	# Step 8: train the model
-	for i in range(100): # run 100 epochs
+    # Step 8: train the model
+    for i in range(100): # run 100 epochs
 		total_loss = 0
 		for x, y in data:
 			# Session runs optimizer to minimize loss and fetch the value of loss
-			# TO DO: write sess.run()
+			_, l = sess.run([optimizer, loss],feed_dict={X:x, Y:y})
 			total_loss += l
 		print "Epoch {0}: {1}".format(i, total_loss/n_samples)
+        
+    w = sess.run(w)
+    b = sess.run(b)
 	
 # plot the results
-# X, Y = data.T[0], data.T[1]
-# plt.plot(X, Y, 'bo', label='Real data')
-# plt.plot(X, X * w + b, 'r', label='Predicted data')
-# plt.legend()
-# plt.show()
+X, Y = data.T[0], data.T[1]
+plt.plot(X, Y, 'bo', label='Real data')
+plt.plot(X, X * w + b, 'r', label='Predicted data')
+plt.legend()
+plt.show()
