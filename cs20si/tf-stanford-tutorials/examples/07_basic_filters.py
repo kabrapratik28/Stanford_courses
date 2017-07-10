@@ -26,7 +26,7 @@ import tensorflow as tf
 
 import kernels
 
-FILENAME = '/Users/Chip/data/ImageNetDogs/Images/n02085620-Chihuahua/n02085620_4016.jpg'
+FILENAME = '../data/cat.jpg'
 
 def read_one_image(filename):
     """ This is just to demonstrate how to open an image in TensorFlow,
