@@ -41,7 +41,13 @@ def _conv2d_relu(vgg_layers, prev_layer, layer, layer_name):
     Hint for choosing strides size: 
         for small images, you probably don't want to skip any pixel
     """
-    pass
+    W, b = _weights(vgg_layers, layer, layer_name)
+    with tf.variable_scope(layer_name) as scope:
+        W = tf.constant(W,name="W")
+        b = tf.constant(b,name="b")
+        conv = tf.nn.conv2d(prev_layer,W,strides=[1,1,1,1],padding='SAME')
+        relu = tf.nn.relu(conv+b,name=scope.name)
+    return relu
 
 def _avgpool(prev_layer):
     """ Return the average pooling layer. The paper suggests that average pooling
@@ -53,7 +59,7 @@ def _avgpool(prev_layer):
         the output of the tf.nn.avg_pool() function.
     Hint for choosing strides and kszie: choose what you feel appropriate
     """
-    pass
+    return tf.nn.avg_pool(prev_layer,[1,2,2,1],[1,2,2,1],padding='SAME')
 
 def load_vgg(path, input_image):
     """ Load VGG into a TensorFlow model.
